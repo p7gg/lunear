@@ -1,6 +1,8 @@
 import { type AppLoadContext, redirect } from "@remix-run/node";
+import { parseAcceptLanguage } from "intl-parse-accept-language";
 import { parseCookies, serializeCookie } from "oslo/cookie";
 import type { SetNonNullable } from "type-fest";
+import { getHints } from "./utils";
 
 const cookieName = "en_theme";
 export type Theme = "light" | "dark";
@@ -22,36 +24,71 @@ export function setTheme(theme: Theme | "system") {
 	return serializeCookie(cookieName, theme, { path: "/", maxAge: 31536000 });
 }
 
-export function requireUser(
-	ctx: AppLoadContext,
-): asserts ctx is SetNonNullable<AppLoadContext, "user"> {
-	if (!ctx.user) {
-		throw redirect("/sign-in");
-	}
-}
-export function requireSession(
-	ctx: AppLoadContext,
-): asserts ctx is SetNonNullable<AppLoadContext, "session"> {
-	if (!ctx.session) {
-		throw redirect("/sign-in");
-	}
-}
+export type AuthenticatedContext = SetNonNullable<
+	AppLoadContext,
+	"user" | "session"
+>;
 export function requireAuth(
 	ctx: AppLoadContext,
-): asserts ctx is SetNonNullable<AppLoadContext, "user" | "session"> {
+): asserts ctx is AuthenticatedContext {
 	if (!ctx.session || !ctx.user) {
-		throw redirect("/sign-in");
+		throw redirect("/auth/sign-in");
 	}
 }
 
-export async function query<D, P extends Promise<D>>(promise: P) {
+export function getDateTimeFormat(
+	request: Request,
+	options?: Intl.DateTimeFormatOptions,
+) {
+	const [locale = "en-US"] = parseAcceptLanguage(
+		request.headers.get("accept-language"),
+		{ validate: Intl.DateTimeFormat.supportedLocalesOf },
+	);
+	const timeZone = getHints(request).timeZone ?? "UTC";
+
+	const defaultOptions: Intl.DateTimeFormatOptions = {
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		hour: "numeric",
+		minute: "numeric",
+		timeZone,
+	};
+	const mergedOptions = { ...defaultOptions, ...options };
+	return new Intl.DateTimeFormat(locale, mergedOptions);
+}
+
+type SafeQueryResult<T extends Promise<unknown>> =
+	| [data: Awaited<T>, error: null]
+	| [data: null, error: Error];
+export async function safeQuery<P extends Promise<unknown>>(
+	promise: P,
+): Promise<SafeQueryResult<P>> {
 	try {
-		return { data: await promise, error: null };
+		return [await promise, null];
 	} catch (error) {
 		if (error instanceof Error) {
-			return { data: null, error };
+			return [null, error];
 		}
 
 		throw error;
 	}
+}
+
+export function notFound() {
+	return new Response("Not Found", { status: 404, statusText: "Not Found" });
+}
+
+export function badRequest(body: string) {
+	return new Response(body, {
+		status: 400,
+		statusText: "Bad Request",
+	});
+}
+
+export function unauthorized(body = "Unauthorized") {
+	return new Response(body, {
+		status: 401,
+		statusText: "Unauthorized",
+	});
 }

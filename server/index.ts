@@ -1,11 +1,12 @@
 import { join } from "node:path";
 import { createRequestHandler } from "@remix-run/express";
 import compression from "compression";
+import {} from "drizzle-orm";
 import express from "express";
 import type { Session, User } from "lucia";
 import morgan from "morgan";
 import { auth } from "./middleware/auth";
-import { csrf } from "./middleware/csfr";
+import { csrf } from "./middleware/csrf";
 
 const mode = process.env.NODE_ENV;
 const dirname = import.meta.dirname;
@@ -32,7 +33,13 @@ const remixHandler = createRequestHandler({
 const app = express();
 
 app.use(compression());
-app.use(morgan("tiny"));
+app.use(
+	morgan("tiny", {
+		skip(req) {
+			return req.url.startsWith("/node_modules/");
+		},
+	}),
+);
 app.use(csrf());
 app.use(auth());
 

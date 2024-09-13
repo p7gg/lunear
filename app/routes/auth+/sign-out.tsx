@@ -3,7 +3,7 @@ import { lucia } from "~/modules/auth.server";
 
 export async function action({ context }: ActionFunctionArgs) {
 	if (!context.session) {
-		throw redirect("/sign-in");
+		throw redirect("/auth/sign-in");
 	}
 
 	await lucia.invalidateSession(context.session.id);

@@ -1,5 +1,5 @@
 import { cx } from "cva";
-import iconsHref from "./icons.svg";
+import iconsHref from "./icons.svg?url";
 
 export { iconsHref };
 
@@ -42,6 +42,36 @@ export type IconName =
 	| "x"
 	| "search"
 	| "panel-left"
+	| "folder"
+	| "folder-git-2"
+	| "tickets"
+	| "circle-dashed"
+	| "circle-progress"
+	| "circle-check"
+	| "circle-x"
+	| "ellipsis-horizontal"
+	| "box-info"
+	| "signal-high"
+	| "signal-medium"
+	| "signal-low"
+	| "list-filter"
+	| "user-plus"
+	| "user-minus"
+	| "arrow-down-wide-narrow"
+	| "bold"
+	| "italic"
+	| "strikethrough"
+	| "heading-1"
+	| "heading-2"
+	| "heading-3"
+	| "heading-4"
+	| "heading-5"
+	| "heading-6"
+	| "align-center"
+	| "align-justify"
+	| "align-left"
+	| "align-right"
+	| "pin"
 	| "lunear";
 
 const sizeClassName = {

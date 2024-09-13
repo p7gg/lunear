@@ -6,7 +6,6 @@ import {
 	redirect,
 } from "@remix-run/node";
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
-import { Argon2id } from "oslo/password";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
 import { Icon } from "~/components/icons/icons";
@@ -41,9 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return submission.reply();
 	}
 
-	const { data: user, error } = await getUserByUserName(
-		submission.value.userName,
-	);
+	const [user, error] = await getUserByUserName(submission.value.userName);
 
 	if (error) {
 		return jsonWithError(null, {
@@ -57,9 +54,9 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const isValidPassword = await new Argon2id().verify(
-		user.password,
+	const isValidPassword = await Bun.password.verify(
 		submission.value.password,
+		user.password,
 	);
 
 	if (!isValidPassword) {
@@ -126,7 +123,7 @@ export default function Route() {
 
 					<div className="mt-4 text-center text-sm">
 						Don&apos;t have an account?{" "}
-						<Link to="/sign-up" className="underline">
+						<Link to="/auth/sign-up" className="underline">
 							Sign up
 						</Link>
 					</div>

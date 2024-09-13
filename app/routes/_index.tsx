@@ -30,11 +30,11 @@ export default function Index() {
 			) : (
 				<>
 					<Button asChild>
-						<Link to="/sign-in">Sign in</Link>
+						<Link to="/auth/sign-in">Sign in</Link>
 					</Button>
 
 					<Button asChild>
-						<Link to="/sign-up">Sign up</Link>
+						<Link to="/auth/sign-up">Sign up</Link>
 					</Button>
 				</>
 			)}

@@ -1,3 +1,4 @@
+import type { DropdownMenuContentProps } from "@radix-ui/react-dropdown-menu";
 import { Slot } from "@radix-ui/react-slot";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import {
@@ -5,23 +6,12 @@ import {
 	Link,
 	NavLink,
 	Outlet,
-	type UIMatch,
 	useFetcher,
-	useLocation,
-	useMatches,
 	useSubmit,
 } from "@remix-run/react";
 import { forwardRef, useRef } from "react";
-import { z } from "zod";
-import { useRequestInfo } from "~/components/client-hints";
 import { Icon, type IconName } from "~/components/icons/icons";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-} from "~/components/ui/breadcrumb";
+import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
 	DropdownMenu,
@@ -45,9 +35,9 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { VisuallyHidden } from "~/components/ui/visually-hidden";
-import { APP_NAME, cx } from "~/modules/shared/utils";
+import { APP_NAME, cx, useRequestInfo } from "~/modules/shared/utils";
 import { requireAuth } from "~/modules/shared/utils.server";
+import { useUser } from "~/modules/user";
 import {
 	type Action as ThemeAction,
 	useOptimisticThemeMode,
@@ -59,22 +49,29 @@ export async function loader({ context }: LoaderFunctionArgs) {
 	return null;
 }
 
-const LINKS: Array<{ icon: IconName; path: string; label: string }> = [
-	{ icon: "house", label: "Home", path: "/app" },
+const LINKS: Array<{
+	icon: IconName;
+	path: string;
+	label: string;
+	end?: true;
+}> = [
+	{ icon: "house", label: "Home", path: "/app", end: true },
+	{ icon: "folder", label: "Projects", path: "/app/projects" },
+	{ icon: "tickets", label: "Issues", path: "/app/issues" },
 ];
 
 export default function Route() {
 	return (
-		<div className="min-h-dvh flex w-full flex-col bg-muted/40">
-			<aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-				<nav className="flex flex-col items-center gap-4 px-2 sm:py-4">
+		<div className="bg-muted/40">
+			<aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col flex-1 border-r bg-background sm:flex sm:items-center px-2 sm:py-4">
+				<nav className="flex flex-col items-center gap-4">
 					<HomeLink />
 
 					{LINKS.map((l) => (
 						<Tooltip key={l.path}>
 							<TooltipTrigger asChild>
 								<NavItem asChild>
-									<NavLink end prefetch="intent" to={l.path}>
+									<NavLink prefetch="intent" to={l.path} end={l.end}>
 										<Icon name={l.icon} className="h-5 w-5">
 											<span className="sr-only">{l.label}</span>
 										</Icon>
@@ -85,100 +82,70 @@ export default function Route() {
 						</Tooltip>
 					))}
 				</nav>
+
+				<UserDropdown side="right" align="end" />
 			</aside>
 
-			<div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-				<header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+			<div className="flex flex-col sm:gap-4 sm:pl-14 min-h-dvh">
+				<header className="sticky top-0 z-30 flex sm:hidden h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
 					<Sheet>
 						<SheetTrigger asChild>
-							<Button size="icon" variant="outline" className="sm:hidden">
+							<Button size="icon" variant="outline">
 								<Icon name="panel-left" className="h-5 w-5" />
 								<span className="sr-only">Toggle Menu</span>
 							</Button>
 						</SheetTrigger>
 
 						<SheetContent side="left" className="sm:max-w-xs">
-							<VisuallyHidden asChild>
-								<SheetTitle className="sr-only">{APP_NAME} app</SheetTitle>
-							</VisuallyHidden>
-							<VisuallyHidden asChild>
-								<SheetDescription>Navigation</SheetDescription>
-							</VisuallyHidden>
+							<SheetTitle className="sr-only">{APP_NAME} app</SheetTitle>
+							<SheetDescription className="sr-only">
+								Navigation
+							</SheetDescription>
 
 							<nav className="grid gap-6 text-lg font-medium">
 								<HomeLink />
 							</nav>
 						</SheetContent>
 					</Sheet>
-
-					<Breadcrumbs />
-
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="secondary"
-								size="icon"
-								className="rounded-full ml-auto"
-							>
-								<Icon name="user" size="lg">
-									<span className="sr-only">Toggle user menu</span>
-								</Icon>
-							</Button>
-						</DropdownMenuTrigger>
-
-						<DropdownMenuContent align="end">
-							<ThemeItems />
-							<DropdownMenuSeparator />
-							<SignOutItem />
-						</DropdownMenuContent>
-					</DropdownMenu>
 				</header>
 
-				<main className="flex-1 items-start p-4 sm:px-6 sm:py-0">
-					<Outlet />
-				</main>
+				{/* <main className="flex flex-col flex-1 p-4 sm:px-6 sm:py-4 sm:pl-14"> */}
+				<Outlet />
+				{/* </main> */}
 			</div>
 		</div>
 	);
 }
 
-const MatchSchema = z.object({
-	breadcrumb: z.function().args(z.custom<UIMatch>()).returns(z.string()),
-});
-
-function Breadcrumbs() {
-	const matches = useMatches();
-	const location = useLocation();
+function UserDropdown(props: {
+	side?: DropdownMenuContentProps["side"];
+	align?: DropdownMenuContentProps["align"];
+}) {
+	const user = useUser();
 
 	return (
-		<Breadcrumb>
-			<BreadcrumbList>
-				{matches.map((match) => {
-					if (match.handle) {
-						const parse = MatchSchema.safeParse(match.handle);
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Avatar asChild>
+					<Button
+						variant="secondary"
+						size="icon"
+						className="rounded-full mt-auto"
+					>
+						<AvatarFallback>
+							{user.firstName.charAt(0)}
+							{user.lastName.charAt(0)}
+						</AvatarFallback>
+					</Button>
+				</Avatar>
+			</DropdownMenuTrigger>
 
-						if (parse.success) {
-							const trimmedPath = match.pathname.replace(/\/$/, "");
-							const label = parse.data.breadcrumb(match);
-
-							return (
-								<BreadcrumbItem key={match.id}>
-									{trimmedPath === location.pathname ? (
-										<BreadcrumbPage>{label}</BreadcrumbPage>
-									) : (
-										<BreadcrumbLink asChild>
-											<Link to={trimmedPath}>{label}</Link>
-										</BreadcrumbLink>
-									)}
-								</BreadcrumbItem>
-							);
-						}
-					}
-
-					return null;
-				})}
-			</BreadcrumbList>
-		</Breadcrumb>
+			<DropdownMenuContent align={props.align} side={props.side}>
+				<ThemeItems />
+				<DropdownMenuSeparator />
+				<SignOutItem />
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -229,7 +196,7 @@ function SignOutItem() {
 				submit(formRef.current);
 			}}
 		>
-			<Form action="/sign-out" method="POST" ref={formRef}>
+			<Form action="/auth/sign-out" method="POST" ref={formRef}>
 				<Icon className="text-body-md" name="log-out">
 					<button type="submit">Sign out</button>
 				</Icon>
@@ -243,9 +210,13 @@ function HomeLink() {
 		<Link
 			prefetch="intent"
 			to="/"
-			className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+			className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#131316] text-[#f4f4f4] border"
 		>
-			<Icon name="lunear" className="transition-all group-hover:scale-110">
+			<Icon
+				name="lunear"
+				size="xl"
+				className="transition-transform group-hover:scale-110"
+			>
 				<span className="sr-only">Lunear app</span>
 			</Icon>
 		</Link>

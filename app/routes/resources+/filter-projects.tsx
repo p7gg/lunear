@@ -1,0 +1,133 @@
+import { type LoaderFunctionArgs, json } from "@remix-run/node";
+import { useFetcher } from "@remix-run/react";
+import { and, desc, eq, like, sql } from "drizzle-orm";
+import { useRef, useState } from "react";
+import { LoaderBar } from "~/components/global-pending-indicator";
+import { Icon } from "~/components/icons/icons";
+import { Button } from "~/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "~/components/ui/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/ui/popover";
+import { db } from "~/modules/db.server/client";
+import { Project, ProjectMember } from "~/modules/db.server/schema";
+import { cx, useDebouncedCallback } from "~/modules/shared/utils";
+import { requireAuth } from "~/modules/shared/utils.server";
+
+const projectsQuery = db
+	.select({ id: Project.id, name: Project.name })
+	.from(Project)
+	.innerJoin(ProjectMember, eq(Project.id, ProjectMember.projectId))
+	.where(
+		and(
+			eq(ProjectMember.userId, sql.placeholder("userId")),
+			like(Project.name, sql.placeholder("q")),
+		),
+	)
+	.orderBy(desc(Project.createdAt))
+	.limit(5)
+	.prepare();
+
+export type Loader = typeof loader;
+export async function loader({ context, request }: LoaderFunctionArgs) {
+	requireAuth(context);
+
+	const url = new URL(request.url);
+	const q = url.searchParams.get("q");
+
+	return json(
+		q ? await projectsQuery.all({ q: `%${q}%`, userId: context.user.id }) : [],
+	);
+}
+
+export function ProjectCombobox(props: {
+	value: string | null;
+	onValueChange?: (projectId: string) => void;
+	initialValues?: Array<{ id: string; name: string }>;
+}) {
+	const fetcher = useFetcher<Loader>();
+
+	const formRef = useRef<HTMLFormElement>(null);
+	const [open, setOpen] = useState(false);
+
+	const handleSearch = useDebouncedCallback(() => {
+		fetcher.submit(formRef.current);
+	}, 400);
+
+	const options = [
+		...(props.initialValues ? props.initialValues : []),
+		...(fetcher.data ? fetcher.data : []),
+	];
+
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button
+					variant="outline"
+					role="combobox"
+					aria-expanded={open}
+					className="w-48 justify-between peer-aria-invalid:border-error"
+				>
+					{props.value
+						? options.find((p) => p.id === props.value)?.name
+						: "Select a project..."}
+					<Icon name="chevrons-up-down" className="ml-2 shrink-0 opacity-50" />
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent className="w-popover p-0 relative overflow-hidden">
+				<LoaderBar
+					className={fetcher.state === "idle" ? "hidden" : undefined}
+				/>
+
+				<Command>
+					<fetcher.Form
+						ref={formRef}
+						method="GET"
+						action="/resources/filter-projects"
+					>
+						<CommandInput
+							name="q"
+							placeholder="Search Project..."
+							onValueChange={handleSearch}
+						/>
+					</fetcher.Form>
+
+					<CommandList>
+						<CommandEmpty>No project found.</CommandEmpty>
+						<CommandGroup>
+							{options.map((option) => (
+								<CommandItem
+									key={option.id}
+									value={option.id}
+									keywords={[option.name]}
+									onSelect={(currentValue) => {
+										props.onValueChange?.(currentValue);
+										setOpen(false);
+									}}
+								>
+									<Icon
+										name="check"
+										className={cx(
+											"mr-2",
+											props.value === option.id ? "opacity-100" : "opacity-0",
+										)}
+									/>
+									{option.name}
+								</CommandItem>
+							))}
+						</CommandGroup>
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
+	);
+}

@@ -10,5 +10,5 @@ export const handle = {
 };
 
 export default function Route() {
-	return <div>app</div>;
+	return <div className="container">app</div>;
 }

@@ -4,7 +4,7 @@ import { type ActionFunctionArgs, redirect } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useFetchers } from "@remix-run/react";
 import { z } from "zod";
-import { useHints, useRequestInfo } from "~/components/client-hints";
+import { useHints, useRequestInfo } from "~/modules/shared/utils";
 import { setTheme } from "~/modules/shared/utils.server";
 
 export const ThemeFormSchema = z.object({

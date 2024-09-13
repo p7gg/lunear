@@ -48,7 +48,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return submission.reply();
 	}
 
-	const { data: user, error } = await createUser(submission.value);
+	const [user, error] = await createUser(submission.value);
 
 	if (error) {
 		return jsonWithError(null, {
@@ -125,7 +125,7 @@ export default function Route() {
 
 					<div className="mt-4 text-center text-sm">
 						Already have an account?{" "}
-						<Link to="/sign-in" className="underline">
+						<Link to="/auth/sign-in" className="underline">
 							Sign in
 						</Link>
 					</div>

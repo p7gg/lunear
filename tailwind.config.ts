@@ -1,3 +1,4 @@
+import typographyPlugin from "@tailwindcss/typography";
 import type { Config } from "tailwindcss";
 import tailwindAnimate from "tailwindcss-animate";
 
@@ -15,6 +16,13 @@ const config = {
 		extend: {
 			aria: {
 				current: 'current="page"',
+				invalid: 'invalid="true"',
+			},
+			width: {
+				popover: "var(--radix-popover-trigger-width)",
+			},
+			height: {
+				popover: "var(--radix-popover-content-available-height)",
 			},
 			colors: {
 				border: "hsl(var(--border))",
@@ -93,7 +101,7 @@ const config = {
 			},
 		},
 	},
-	plugins: [tailwindAnimate],
+	plugins: [tailwindAnimate, typographyPlugin],
 } satisfies Config;
 
 export default config;

@@ -2,7 +2,7 @@ import type * as React from "react";
 import { type VariantProps, cva, cx } from "~/modules/shared/utils";
 
 const badgeVariants = cva({
-	base: "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+	base: "inline-flex items-center rounded-md border  font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
 	variants: {
 		variant: {
 			default:
@@ -18,9 +18,15 @@ const badgeVariants = cva({
 				"border-transparent bg-warning text-warning-foreground shadow hover:bg-warning/80",
 			outline: "text-foreground",
 		},
+		size: {
+			sm: "px-1.5 text-xs",
+			md: "px-2.5 py-0.5 text-xs",
+			lg: "px-3 py-1 text-sm",
+		},
 	},
 	defaultVariants: {
 		variant: "default",
+		size: "md",
 	},
 });
 
@@ -28,9 +34,12 @@ export interface BadgeProps
 	extends React.HTMLAttributes<HTMLDivElement>,
 		VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, size, ...props }: BadgeProps) {
 	return (
-		<div className={cx(badgeVariants({ variant }), className)} {...props} />
+		<div
+			className={cx(badgeVariants({ variant, size }), className)}
+			{...props}
+		/>
 	);
 }
 

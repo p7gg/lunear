@@ -4,7 +4,7 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import { useRef, useState } from "react";
 import { LoaderBar } from "~/components/global-pending-indicator";
 import { Icon } from "~/components/icons/icons";
-import { Button } from "~/components/ui/button";
+import { Button, ButtonProps } from "~/components/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -50,6 +50,9 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 }
 
 export function ProjectCombobox(props: {
+	variant?: ButtonProps["variant"];
+	className?: string;
+
 	value: string | null;
 	onValueChange?: (projectId: string) => void;
 	initialValues?: Array<{ id: string; name: string }>;
@@ -63,19 +66,27 @@ export function ProjectCombobox(props: {
 		fetcher.submit(formRef.current);
 	}, 400);
 
-	const options = [
-		...(props.initialValues ? props.initialValues : []),
-		...(fetcher.data ? fetcher.data : []),
-	];
+	const map = new Map(props.initialValues?.map((p) => [p.id, p]));
+
+	if (fetcher.data) {
+		for (const data of fetcher.data) {
+			!map.has(data.id) && map.set(data.id, data);
+		}
+	}
+
+	const options = [...map.values()];
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant="outline"
+					variant={props.variant ?? "outline"}
 					role="combobox"
 					aria-expanded={open}
-					className="w-48 justify-between peer-aria-invalid:border-error"
+					className={cx(
+						"w-48 justify-between peer-aria-invalid:border-error",
+						props.className,
+					)}
 				>
 					{props.value
 						? options.find((p) => p.id === props.value)?.name

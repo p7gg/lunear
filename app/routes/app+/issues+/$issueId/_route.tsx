@@ -51,6 +51,7 @@ import { db } from "~/modules/db.server/client";
 import {
 	Comment,
 	Issue,
+	Project,
 	ProjectMember,
 	User,
 } from "~/modules/db.server/schema";
@@ -76,6 +77,7 @@ import {
 	safeQuery,
 } from "~/modules/shared/utils.server";
 import { useUser } from "~/modules/user";
+import { ProjectCombobox } from "~/routes/resources+/filter-projects";
 
 enum Intent {
 	DeleteIssue = "delete_issue",
@@ -116,6 +118,7 @@ const FormSchema = z.discriminatedUnion("intent", [
 			.number()
 			.refine((p) => IssuePriority[p], "Invalid Priority")
 			.optional(),
+		projectId: z.string().optional(),
 	}),
 ]);
 const issueQuery = db
@@ -124,11 +127,16 @@ const issueQuery = db
 		description: Issue.description,
 		status: Issue.status,
 		priority: Issue.priority,
-		projectRole: ProjectMember.role,
+		project: {
+			id: Project.id,
+			name: Project.name,
+			role: ProjectMember.role,
+		},
 		creator: User.fullName,
 	})
 	.from(Issue)
 	.innerJoin(ProjectMember, eq(Issue.projectId, ProjectMember.projectId))
+	.innerJoin(Project, eq(Issue.projectId, Project.id))
 	.innerJoin(User, eq(Issue.createdBy, User.id))
 	.where(
 		and(
@@ -241,6 +249,7 @@ export async function action({ context, params, request }: ActionFunctionArgs) {
 				id: issueId,
 				status: payload.status,
 				priority: payload.priority,
+				projectId: payload.projectId,
 			});
 			error = resError;
 
@@ -444,6 +453,7 @@ function DescriptionForm() {
 	return (
 		<fetcher.Form method="POST" {...getFormProps(form)}>
 			<RichTextEditor
+				className="h-52"
 				placeholder="Add description..."
 				value={description.value ?? ""}
 				onBlur={description.blur}
@@ -490,7 +500,7 @@ function CommentsList() {
 										<CardTitle>{comment.creator}</CardTitle>
 									</div>
 
-									{issue.projectRole === "ADMIN" ||
+									{issue.project.role === "ADMIN" ||
 									comment.createBy === user.id ? (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
@@ -581,11 +591,45 @@ function CommentsForm() {
 
 function IssueMeta(props: { className?: string }) {
 	return (
-		<div className={cx("grid grid-cols-2 gap-4 items-center", props.className)}>
+		<div
+			className={cx("grid gap-4 items-center", props.className)}
+			style={{ gridTemplateColumns: "auto 1fr" }}
+		>
 			<IssueOpenedByMeta />
+			<IssueProjectMeta />
 			<IssueStatusMeta />
 			<IssuePriorityMeta />
 		</div>
+	);
+}
+
+function IssueProjectMeta() {
+	const { issue } = useLoaderData<Loader>();
+	const fetcher = useFetcher<Action>();
+
+	const optmisticValue = fetcher.formData
+		? String(fetcher.formData.get("projectId"))
+		: issue.project.id;
+
+	return (
+		<>
+			<span className="text-sm text-muted-foreground">Project</span>
+			<fetcher.Form method="POST" className="max-w-48 w-full">
+				<ProjectCombobox
+					className="w-full"
+					variant="secondary"
+					initialValues={[issue.project]}
+					value={optmisticValue}
+					onValueChange={(projectId) => {
+						const formData = new FormData();
+						formData.set("intent", Intent.UpdateIssue);
+						formData.set("projectId", projectId);
+
+						fetcher.submit(formData, { method: "POST" });
+					}}
+				/>
+			</fetcher.Form>
+		</>
 	);
 }
 

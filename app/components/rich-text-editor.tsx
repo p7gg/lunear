@@ -5,6 +5,7 @@ import { Icon } from "./icons/icons";
 import { Separator } from "./ui/separator";
 import { Toggle } from "./ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { cx } from "~/modules/shared/utils";
 
 const extensions = [
 	StarterKit.configure({
@@ -24,6 +25,7 @@ const extensions = [
 	}),
 ];
 export function RichTextEditor(props: {
+	className?: string;
 	value: string;
 	onChange?: (content: string) => void;
 	onBlur?: (content: string) => void;
@@ -33,8 +35,10 @@ export function RichTextEditor(props: {
 	const editor = useEditor({
 		editorProps: {
 			attributes: {
-				class:
+				class: cx(
 					"h-[150px] w-full px-3 py-2 text-sm prose-zinc dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 overflow-auto",
+					props.className,
+				),
 			},
 		},
 		extensions,

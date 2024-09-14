@@ -4,7 +4,7 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import { useRef, useState } from "react";
 import { LoaderBar } from "~/components/global-pending-indicator";
 import { Icon } from "~/components/icons/icons";
-import { Button, ButtonProps } from "~/components/ui/button";
+import { Button, type ButtonProps } from "~/components/ui/button";
 import {
 	Command,
 	CommandEmpty,

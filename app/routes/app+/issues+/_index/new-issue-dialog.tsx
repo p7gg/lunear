@@ -17,7 +17,6 @@ import { Icon } from "~/components/icons/icons";
 import { PriorityDropdown } from "~/components/priority-dropdown";
 import { StatusDropdown } from "~/components/status-dropdown";
 import { Button } from "~/components/ui/button";
-import {} from "~/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -27,7 +26,6 @@ import {
 } from "~/components/ui/dialog";
 import { DialogFooter, DialogHeader } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
-import {} from "~/components/ui/popover";
 import { Textarea } from "~/components/ui/textarea";
 import {
 	ISSUE_PRIORITY_CONFIG,
@@ -122,12 +120,12 @@ function IssueForm(props: { id: string; onSubmit?: () => void }) {
 }
 
 function ProjectSelect(props: { meta: FieldMetadata<string, FormSchema> }) {
-	const { recentProjectsPromise } = useLoaderData<IssuesLoader>();
+	const { projectsPromise } = useLoaderData<IssuesLoader>();
 
 	const control = useInputControl(props.meta);
 
 	return (
-		<Await resolve={recentProjectsPromise}>
+		<Await resolve={projectsPromise}>
 			{(projects) => {
 				return (
 					<>

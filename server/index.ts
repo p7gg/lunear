@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { createRequestHandler } from "@remix-run/express";
 import compression from "compression";
-import {} from "drizzle-orm";
 import express from "express";
 import type { Session, User } from "lucia";
 import morgan from "morgan";

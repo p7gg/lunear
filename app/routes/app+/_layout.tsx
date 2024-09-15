@@ -72,7 +72,7 @@ export default function Route() {
 							<TooltipTrigger asChild>
 								<NavItem asChild>
 									<NavLink prefetch="intent" to={l.path} end={l.end}>
-										<Icon name={l.icon} className="h-5 w-5">
+										<Icon name={l.icon} size="md">
 											<span className="sr-only">{l.label}</span>
 										</Icon>
 									</NavLink>
@@ -109,9 +109,7 @@ export default function Route() {
 					</Sheet>
 				</header>
 
-				{/* <main className="flex flex-col flex-1 p-4 sm:px-6 sm:py-4 sm:pl-14"> */}
 				<Outlet />
-				{/* </main> */}
 			</div>
 		</div>
 	);
@@ -190,7 +188,6 @@ function SignOutItem() {
 	return (
 		<DropdownMenuItem
 			asChild
-			// this prevents the menu from closing before the form submission is completed
 			onSelect={(event) => {
 				event.preventDefault();
 				submit(formRef.current);

@@ -9,7 +9,6 @@ import { setTheme } from "~/modules/shared/utils.server";
 
 export const ThemeFormSchema = z.object({
 	theme: z.enum(["system", "light", "dark"]),
-	// this is useful for progressive enhancement
 	redirectTo: z.string().optional(),
 });
 

@@ -349,9 +349,7 @@ export default function Route() {
 					<DescriptionForm />
 					<Separator />
 					<h3>Comments</h3>
-					<ScrollArea className="h-96">
-						<CommentsList />
-					</ScrollArea>
+					<CommentsList />
 					<CommentsForm />
 				</div>
 
@@ -474,67 +472,69 @@ function CommentsList() {
 	const user = useUser();
 
 	return (
-		<ul className="flex flex-col gap-2">
-			{comments.map((comment) => {
-				const [firstName, lastName] = comment.creator.split(" ");
+		<ScrollArea className="h-96">
+			<ul className="flex flex-col gap-2">
+				{comments.map((comment) => {
+					const [firstName, lastName] = comment.creator.split(" ");
 
-				return (
-					<li
-						key={comment.id}
-						className={cx(
-							"w-full md:w-3/5",
-							comment.createBy === user.id ? "self-end" : "self-start",
-						)}
-					>
-						<Card>
-							<CardHeader>
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-1">
-										<Avatar className="size-8">
-											<AvatarFallback>
-												{firstName.charAt(0)}
-												{lastName.charAt(0)}
-											</AvatarFallback>
-										</Avatar>
+					return (
+						<li
+							key={comment.id}
+							className={cx(
+								"w-full md:w-3/5",
+								comment.createBy === user.id ? "self-end" : "self-start",
+							)}
+						>
+							<Card>
+								<CardHeader>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-1">
+											<Avatar className="size-8">
+												<AvatarFallback>
+													{firstName.charAt(0)}
+													{lastName.charAt(0)}
+												</AvatarFallback>
+											</Avatar>
 
-										<CardTitle>{comment.creator}</CardTitle>
+											<CardTitle>{comment.creator}</CardTitle>
+										</div>
+
+										{issue.project.role === "ADMIN" ||
+										comment.createBy === user.id ? (
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														size="icon"
+														variant="outline"
+														className="size-8"
+													>
+														<Icon name="ellipsis-horizontal">
+															<span className="sr-only">Comments actions</span>
+														</Icon>
+													</Button>
+												</DropdownMenuTrigger>
+
+												<DropdownMenuContent>
+													<DeleteCommentButton id={comment.id} />
+												</DropdownMenuContent>
+											</DropdownMenu>
+										) : null}
 									</div>
+								</CardHeader>
 
-									{issue.project.role === "ADMIN" ||
-									comment.createBy === user.id ? (
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													size="icon"
-													variant="outline"
-													className="size-8"
-												>
-													<Icon name="ellipsis-horizontal">
-														<span className="sr-only">Comments actions</span>
-													</Icon>
-												</Button>
-											</DropdownMenuTrigger>
+								<CardContent>{comment.content}</CardContent>
+							</Card>
+						</li>
+					);
+				})}
 
-											<DropdownMenuContent>
-												<DeleteCommentButton id={comment.id} />
-											</DropdownMenuContent>
-										</DropdownMenu>
-									) : null}
-								</div>
-							</CardHeader>
-
-							<CardContent>{comment.content}</CardContent>
-						</Card>
-					</li>
-				);
-			})}
-
-			<li className="hidden first:list-item">
-				<p className="text-center text-muted-foreground text-sm italic">
-					Post a new comment.
-				</p>
-			</li>
-		</ul>
+				<li className="hidden first:list-item">
+					<p className="text-center text-muted-foreground text-sm italic">
+						Post a new comment.
+					</p>
+				</li>
+			</ul>
+		</ScrollArea>
 	);
 }
 

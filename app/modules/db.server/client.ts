@@ -24,10 +24,10 @@ invariant(url, "Missing TURSO_CONNECTION_URL");
 
 const DB_CONNECTION_DICT: Record<string, Config> = {
 	local: {
-		url: "file:local.sqlite",
+		url: "file:server/local.sqlite",
 	},
 	"local-replica": {
-		url: "file:local.sqlite",
+		url: "file:server/local.sqlite",
 		syncUrl: url,
 		authToken,
 		syncInterval: 60,
@@ -38,7 +38,7 @@ const DB_CONNECTION_DICT: Record<string, Config> = {
 	},
 };
 
-export const client = createClient(DB_CONNECTION_DICT[values.db]);
+const client = createClient(DB_CONNECTION_DICT[values.db]);
 
 if (values.db === "local-replica") {
 	client.sync();

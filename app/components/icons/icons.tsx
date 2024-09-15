@@ -1,4 +1,4 @@
-import { cx } from "cva";
+import { cx } from "~/modules/shared/utils";
 import iconsHref from "./icons.svg?url";
 
 export { iconsHref };

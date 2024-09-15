@@ -1,6 +1,5 @@
 // Inspired by react-hot-toast library
 import * as React from "react";
-
 import type { ToastActionElement, ToastProps } from "~/components/ui/toast";
 
 const TOAST_LIMIT = 1;
@@ -69,7 +68,7 @@ const addToRemoveQueue = (toastId: string) => {
 	toastTimeouts.set(toastId, timeout);
 };
 
-export const reducer = (state: State, action: Action): State => {
+const reducer = (state: State, action: Action): State => {
 	switch (action.type) {
 		case "ADD_TOAST":
 			return {

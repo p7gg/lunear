@@ -155,7 +155,12 @@ function StatusPicker(props: { meta: FieldMetadata<IssueStatus, FormSchema> }) {
 	return (
 		<StatusDropdown value={control.value} onValueChange={control.change}>
 			<Button variant="outline" size="icon" name="status" value={control.value}>
-				<Icon name={selectedStatus.icon}>
+				<Icon
+					name={selectedStatus.icon}
+					className={
+						"color" in selectedStatus ? selectedStatus.color : undefined
+					}
+				>
 					<span className="sr-only">Select a status</span>
 				</Icon>
 			</Button>

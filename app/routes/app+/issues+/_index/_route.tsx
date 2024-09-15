@@ -108,7 +108,6 @@ enum SearchKeys {
 	SortBy = "sortBy",
 	Order = "order",
 }
-
 type SearchParamsSchema = z.infer<typeof SearchParamsSchema>;
 const SearchParamsSchema = z.object({
 	[SearchKeys.Status]: z.number().array().default([]),
@@ -273,8 +272,17 @@ function useIssues() {
 
 	const user = useUser();
 
-	const checkForSearchParam = (name: SearchKeys, value: string) =>
-		!searchParams.has(name) || searchParams.has(name, value);
+	const checkForSearchParams = (payload: {
+		projectId: string;
+		status: IssueStatus;
+		priority: IssuePriority;
+	}) =>
+		(!searchParams.has(SearchKeys.Status) ||
+			searchParams.has(SearchKeys.Status, `${payload.status}`)) &&
+		(!searchParams.has(SearchKeys.Priority) ||
+			searchParams.has(SearchKeys.Priority, `${payload.priority}`)) &&
+		(!searchParams.has(SearchKeys.Project) ||
+			searchParams.has(SearchKeys.Project, payload.projectId));
 
 	return [
 		...fetchers
@@ -290,18 +298,7 @@ function useIssues() {
 							switch (payload.intent) {
 								case Intent.CreateIssue: {
 									payload.id &&
-										checkForSearchParam(
-											SearchKeys.Status,
-											`${payload.status}`,
-										) &&
-										checkForSearchParam(
-											SearchKeys.Priority,
-											`${payload.priority}`,
-										) &&
-										checkForSearchParam(
-											SearchKeys.Project,
-											payload.projectId,
-										) &&
+										checkForSearchParams(payload) &&
 										acc.set(payload.id, {
 											id: payload.id,
 											createdAt: now,
@@ -333,7 +330,16 @@ function useIssues() {
 
 					return acc;
 				},
-				new Map(issues.map((i) => [i.id, i])),
+				new Map(
+					issues.reduce(
+						(acc, issue) => {
+							if (checkForSearchParams(issue)) acc.push([issue.id, issue]);
+
+							return acc;
+						},
+						[] as Array<[string, SerializeFrom<Loader>["issues"][number]]>,
+					),
+				),
 			)
 			.values(),
 	];
@@ -895,7 +901,10 @@ function StatusPicker(props: {
 				>
 					<TooltipTrigger asChild>
 						<Button variant="outline" size="icon">
-							<Icon name={status.icon}>
+							<Icon
+								name={status.icon}
+								className={"color" in status ? status.color : undefined}
+							>
 								<span className="sr-only">{status.label}</span>
 							</Icon>
 						</Button>

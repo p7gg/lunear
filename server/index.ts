@@ -62,11 +62,10 @@ app.use(express.static("build/client", { maxAge: "1h" }));
 
 const port = 3000;
 // handle SSR requests
-app
-	.all("*", remixHandler)
-	.listen(port, () =>
-		console.log(`Express server listening at http://localhost:${port}`),
-	);
+app.all("*", remixHandler).listen(port, () => {
+	// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+	console.log(`Express server listening at http://localhost:${port}`);
+});
 
 interface AuthContext {
 	user: User | null;

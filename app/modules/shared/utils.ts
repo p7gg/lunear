@@ -67,7 +67,10 @@ export function useZodForm<
 	});
 }
 
-type Config<T extends number> = Record<T, { label: string; icon: IconName }>;
+type Config<T extends number> = Record<
+	T,
+	{ label: string; icon: IconName; color?: string }
+>;
 
 export enum IssueStatus {
 	Canceled = 0,
@@ -77,11 +80,27 @@ export enum IssueStatus {
 	Done = 4,
 }
 export const ISSUE_STATUS_CONFIG = {
-	[IssueStatus.Canceled]: { label: "Canceled", icon: "circle-x" },
-	[IssueStatus.Backlog]: { label: "Backlog", icon: "circle-dashed" },
+	[IssueStatus.Canceled]: {
+		label: "Canceled",
+		icon: "circle-x",
+		color: "text-muted-foreground",
+	},
+	[IssueStatus.Backlog]: {
+		label: "Backlog",
+		icon: "circle-dashed",
+		color: "text-muted-foreground",
+	},
 	[IssueStatus.ToDo]: { label: "To-Do", icon: "circle" },
-	[IssueStatus.InProgress]: { label: "In-Progress", icon: "circle-progress" },
-	[IssueStatus.Done]: { label: "Done", icon: "circle-check" },
+	[IssueStatus.InProgress]: {
+		label: "In-Progress",
+		icon: "circle-progress",
+		color: "text-warning",
+	},
+	[IssueStatus.Done]: {
+		label: "Done",
+		icon: "circle-check",
+		color: "text-info",
+	},
 } as const satisfies Config<IssueStatus>;
 
 export enum IssuePriority {

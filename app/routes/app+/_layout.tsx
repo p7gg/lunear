@@ -72,7 +72,7 @@ export default function Route() {
 							<TooltipTrigger asChild>
 								<NavItem asChild>
 									<NavLink prefetch="intent" to={l.path} end={l.end}>
-										<Icon name={l.icon} size="md">
+										<Icon name={l.icon} size="sm">
 											<span className="sr-only">{l.label}</span>
 										</Icon>
 									</NavLink>

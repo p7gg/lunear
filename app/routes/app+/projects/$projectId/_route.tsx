@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { useRef, useState } from "react";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -43,7 +43,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import {
 	addNewProjectMember,
 	projectMemberQuery,
@@ -57,6 +57,7 @@ import {
 	title,
 	useDebouncedCallback,
 	useRequestInfo,
+	useUser,
 	useZodForm,
 } from "~/modules/shared/utils";
 import {
@@ -66,7 +67,6 @@ import {
 	safeQuery,
 	unauthorized,
 } from "~/modules/shared/utils.server";
-import { useUser } from "~/modules/user";
 import type { Loader as FilterUsersLoader } from "~/routes/resources+/filter-users";
 
 enum Intent {

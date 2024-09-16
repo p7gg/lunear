@@ -8,7 +8,7 @@ import {
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { Button } from "~/components/ui/button";
 import {
 	Card,

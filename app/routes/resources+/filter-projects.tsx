@@ -3,7 +3,7 @@ import { useFetcher } from "@remix-run/react";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { useRef, useState } from "react";
 import { LoaderBar } from "~/components/global-pending-indicator";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { Button, type ButtonProps } from "~/components/ui/button";
 import {
 	Command,
@@ -18,7 +18,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "~/components/ui/popover";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import { Project, ProjectMember } from "~/modules/db.server/schema";
 import { cx, useDebouncedCallback } from "~/modules/shared/utils";
 import { requireAuth } from "~/modules/shared/utils.server";
@@ -56,6 +56,7 @@ export function ProjectCombobox(props: {
 	value: string | null;
 	onValueChange?: (projectId: string) => void;
 	initialValues?: Array<{ id: string; name: string }>;
+	disabled?: boolean;
 }) {
 	const fetcher = useFetcher<Loader>();
 
@@ -80,8 +81,9 @@ export function ProjectCombobox(props: {
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant={props.variant ?? "outline"}
 					role="combobox"
+					variant={props.variant ?? "outline"}
+					disabled={props.disabled}
 					aria-expanded={open}
 					className={cx(
 						"w-48 justify-between peer-aria-invalid:border-error",

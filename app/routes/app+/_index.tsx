@@ -5,10 +5,6 @@ export const meta: MetaFunction = () => {
 	return [{ title: title() }];
 };
 
-export const handle = {
-	breadcrumb: () => "Home",
-};
-
 export default function Route() {
-	return <div className="container">app</div>;
+	return <div className="container">App</div>;
 }

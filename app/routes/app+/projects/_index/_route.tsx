@@ -20,7 +20,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -46,16 +46,20 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import { Issue, Project, ProjectMember } from "~/modules/db.server/schema";
 import {
 	createProject,
 	deleteProjectById,
 	updateProject,
 } from "~/modules/queries.server";
-import { IssueStatus, title, useZodForm } from "~/modules/shared/utils";
+import {
+	IssueStatus,
+	title,
+	useUser,
+	useZodForm,
+} from "~/modules/shared/utils";
 import { requireAuth, safeQuery } from "~/modules/shared/utils.server";
-import { useUser } from "~/modules/user";
 
 enum Intent {
 	Create_Project = "create_project",

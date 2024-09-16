@@ -1,5 +1,5 @@
 import { type LoaderFunctionArgs, json } from "@remix-run/node";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import { ProjectMember } from "~/modules/db.server/schema";
 import { requireAuth } from "~/modules/shared/utils.server";
 

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { SetOptional } from "type-fest";
-import { db } from "./db.server/client";
+import { db } from "./db.server";
 import {
 	Comment,
 	type InsertComment,

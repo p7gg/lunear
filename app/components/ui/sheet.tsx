@@ -1,7 +1,7 @@
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";
 import { type VariantProps, cva, cx } from "~/modules/shared/utils";
-import { Icon } from "../icons/icons";
+import { Icon } from "../icons";
 
 const Sheet = SheetPrimitive.Root;
 

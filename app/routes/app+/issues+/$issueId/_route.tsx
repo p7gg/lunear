@@ -10,22 +10,26 @@ import {
 	type ActionFunctionArgs,
 	type LoaderFunctionArgs,
 	type MetaFunction,
+	type SerializeFrom,
+	defer,
 	json,
 } from "@remix-run/node";
 import {
+	Await,
 	Form,
 	Link,
 	redirect,
+	useAsyncValue,
 	useFetcher,
 	useFetchers,
 	useLoaderData,
 	useNavigation,
 } from "@remix-run/react";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { PriorityDropdown } from "~/components/priority-dropdown";
 import { RichTextEditor } from "~/components/rich-text-editor";
 import { StatusDropdown } from "~/components/status-dropdown";
@@ -41,13 +45,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Separator } from "~/components/ui/separator";
+import { Skeleton } from "~/components/ui/skeleton";
 import { ConformTextarea } from "~/components/ui/textarea";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import {
 	Comment,
 	Issue,
@@ -69,6 +74,7 @@ import {
 	cx,
 	title,
 	useDebouncedCallback,
+	useUser,
 	useZodForm,
 } from "~/modules/shared/utils";
 import {
@@ -76,7 +82,6 @@ import {
 	requireAuth,
 	safeQuery,
 } from "~/modules/shared/utils.server";
-import { useUser } from "~/modules/user";
 import { ProjectCombobox } from "~/routes/resources+/filter-projects";
 
 enum Intent {
@@ -176,14 +181,19 @@ export async function loader({ context, params }: LoaderFunctionArgs) {
 	const { issueId } = params;
 	invariantResponse(issueId, "Missing Issue ID");
 
-	const [[issue], [comments]] = await Promise.all([
-		safeQuery(issueQuery.get({ issueId, userId: context.user.id })),
-		safeQuery(commentsQuery.all({ issueId, userId: context.user.id })),
-	]);
-
+	const commentsPromise = commentsQuery.all({
+		issueId,
+		userId: context.user.id,
+	});
+	const [issue] = await safeQuery(
+		issueQuery.get({ issueId, userId: context.user.id }),
+	);
 	invariantResponse(issue, "Not found", { status: 404 });
 
-	return json({ issue, comments: comments ?? [] });
+	return defer({
+		issue,
+		commentsPromise,
+	});
 }
 
 export type Action = typeof action;
@@ -273,7 +283,9 @@ export async function action({ context, params, request }: ActionFunctionArgs) {
 }
 
 export function useComments() {
-	const { comments } = useLoaderData<Loader>();
+	const comments = useAsyncValue() as Awaited<
+		SerializeFrom<Loader>["commentsPromise"]
+	>;
 	const fetchers = useFetchers();
 
 	const user = useUser();
@@ -344,12 +356,11 @@ export default function Route() {
 			<div className="flex-1 flex flex-col md:grid grid-cols-3 container overflow-hidden">
 				<IssueMeta className="md:hidden py-4 border-b" />
 
-				<div className="col-span-2 flex flex-col gap-4 p-4  overflow-auto">
+				<div className="col-span-2 flex flex-col gap-4 p-4 overflow-auto">
 					<TitleForm />
 					<DescriptionForm />
 					<Separator />
-					<h3>Comments</h3>
-					<CommentsList />
+					<Comments />
 					<CommentsForm />
 				</div>
 
@@ -465,6 +476,43 @@ function DescriptionForm() {
 	);
 }
 
+function Comments() {
+	const { commentsPromise } = useLoaderData<Loader>();
+
+	return (
+		<>
+			<h3>Comments</h3>
+
+			<ScrollArea className="h-96">
+				<ul className="flex flex-col gap-2">
+					<Suspense fallback={<CommentsSkeleton />}>
+						<Await resolve={commentsPromise}>
+							<CommentsList />
+						</Await>
+					</Suspense>
+
+					<li className="hidden first:list-item">
+						<p className="text-center text-muted-foreground text-sm italic">
+							Post a new comment.
+						</p>
+					</li>
+				</ul>
+			</ScrollArea>
+		</>
+	);
+}
+
+function CommentsSkeleton() {
+	return Array(3)
+		.fill(0)
+		.map((_, index) => (
+			// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+			<li key={index} className="w-full md:w-3/5 self-end">
+				<Skeleton className="h-[130px]" />
+			</li>
+		));
+}
+
 function CommentsList() {
 	const { issue } = useLoaderData<Loader>();
 
@@ -527,12 +575,6 @@ function CommentsList() {
 						</li>
 					);
 				})}
-
-				<li className="hidden first:list-item">
-					<p className="text-center text-muted-foreground text-sm italic">
-						Post a new comment.
-					</p>
-				</li>
 			</ul>
 		</ScrollArea>
 	);
@@ -616,6 +658,7 @@ function IssueProjectMeta() {
 			<span className="text-sm text-muted-foreground">Project</span>
 			<fetcher.Form method="POST" className="max-w-48 w-full">
 				<ProjectCombobox
+					disabled={issue.project.role !== "ADMIN"}
 					className="w-full"
 					variant="secondary"
 					initialValues={[issue.project]}

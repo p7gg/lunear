@@ -10,7 +10,7 @@ import {
 	useSubmit,
 } from "@remix-run/react";
 import { forwardRef, useRef } from "react";
-import { Icon, type IconName } from "~/components/icons/icons";
+import { Icon, type IconName } from "~/components/icons";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -35,9 +35,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { APP_NAME, cx, useRequestInfo } from "~/modules/shared/utils";
+import { APP_NAME, cx, useRequestInfo, useUser } from "~/modules/shared/utils";
 import { requireAuth } from "~/modules/shared/utils.server";
-import { useUser } from "~/modules/user";
 import {
 	type Action as ThemeAction,
 	useOptimisticThemeMode,

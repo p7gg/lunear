@@ -10,8 +10,8 @@ import { useCallback, useRef } from "react";
 import { twMerge } from "tailwind-merge";
 import type { ValueOf } from "type-fest";
 import type { z } from "zod";
-import type { IconName } from "~/components/icons/icons";
-import type { Loader } from "~/root";
+import type { IconName } from "~/components/icons";
+import type { Loader as RootLoader } from "~/root";
 
 export type { VariantProps } from "cva";
 
@@ -131,7 +131,7 @@ export const { getHints, getClientHintCheckScript } = getHintUtils({
 });
 
 export function useRequestInfo() {
-	const data = useRouteLoaderData<Loader>("root");
+	const data = useRouteLoaderData<RootLoader>("root");
 	invariant(data?.requestInfo, "No requestInfo found in root loader");
 
 	return data.requestInfo;
@@ -160,4 +160,22 @@ export function useDebouncedCallback<T extends Array<unknown> = Array<unknown>>(
 		},
 		[func, wait],
 	);
+}
+
+export function useOptionalUser() {
+	const data = useRouteLoaderData<RootLoader>("root");
+	if (!data) {
+		return null;
+	}
+	return data.user;
+}
+
+export function useUser() {
+	const maybeUser = useOptionalUser();
+	invariant(
+		maybeUser,
+		"No user found in root loader, but user is required by useUser. If user is optional, try useOptionalUser instead.",
+	);
+
+	return maybeUser;
 }

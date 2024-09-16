@@ -1,6 +1,6 @@
 import type { DropdownMenuRadioGroupProps } from "@radix-ui/react-dropdown-menu";
 import { ISSUE_PRIORITY_CONFIG } from "~/modules/shared/utils";
-import { Icon } from "./icons/icons";
+import { Icon } from "./icons";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

@@ -13,7 +13,7 @@ import {
 	useSearchParams,
 } from "@remix-run/react";
 import { useId, useState } from "react";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { PriorityDropdown } from "~/components/priority-dropdown";
 import { StatusDropdown } from "~/components/status-dropdown";
 import { Button } from "~/components/ui/button";

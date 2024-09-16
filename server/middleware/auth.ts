@@ -11,18 +11,6 @@ export function auth(): RequestHandler {
 		}
 
 		const { session, user } = await lucia.validateSession(sessionId);
-		if (session?.fresh) {
-			res.appendHeader(
-				"Set-Cookie",
-				lucia.createSessionCookie(session.id).serialize(),
-			);
-		}
-		if (!session) {
-			res.appendHeader(
-				"Set-Cookie",
-				lucia.createBlankSessionCookie().serialize(),
-			);
-		}
 		res.locals.user = user;
 		res.locals.session = session;
 		return next();

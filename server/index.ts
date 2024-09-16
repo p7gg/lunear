@@ -5,7 +5,6 @@ import express from "express";
 import type { Session, User } from "lucia";
 import morgan from "morgan";
 import { auth } from "./middleware/auth";
-import { csrf } from "./middleware/csrf";
 
 const mode = process.env.NODE_ENV;
 const dirname = import.meta.dirname;
@@ -39,7 +38,6 @@ app.use(
 		},
 	}),
 );
-app.use(csrf());
 app.use(auth());
 
 // http://expressjs.com/en/advanced/best-practice-security.html#at-a-minimum-disable-x-powered-by-header
@@ -60,24 +58,26 @@ if (viteDevServer) {
 // more aggressive with this caching.
 app.use(express.static("build/client", { maxAge: "1h" }));
 
-const port = 3000;
 // handle SSR requests
-app.all("*", remixHandler).listen(port, () => {
+app.all("*", remixHandler);
+
+const port = 3000;
+app.listen(port, () => {
 	// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 	console.log(`Express server listening at http://localhost:${port}`);
 });
 
-interface AuthContext {
+interface AppContext {
 	user: User | null;
 	session: Session | null;
 }
 
 declare global {
 	namespace Express {
-		interface Locals extends AuthContext {}
+		interface Locals extends AppContext {}
 	}
 }
 
 declare module "@remix-run/server-runtime" {
-	interface AppLoadContext extends AuthContext {}
+	interface AppLoadContext extends AppContext {}
 }

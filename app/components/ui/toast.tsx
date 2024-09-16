@@ -1,7 +1,7 @@
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import * as React from "react";
 import { type VariantProps, cva, cx } from "~/modules/shared/utils";
-import { Icon } from "../icons/icons";
+import { Icon } from "../icons";
 
 const ToastProvider = ToastPrimitives.Provider;
 

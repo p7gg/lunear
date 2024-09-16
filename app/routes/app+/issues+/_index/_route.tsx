@@ -15,12 +15,21 @@ import {
 	useLoaderData,
 	useSearchParams,
 } from "@remix-run/react";
-import { type SQL, and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import {
+	type SQL,
+	and,
+	asc,
+	desc,
+	eq,
+	inArray,
+	notInArray,
+	or,
+} from "drizzle-orm";
 import { Suspense, useRef } from "react";
 import { jsonWithError } from "remix-toast";
 import { z } from "zod";
 import { LoaderBar } from "~/components/global-pending-indicator";
-import { Icon } from "~/components/icons/icons";
+import { Icon } from "~/components/icons";
 import { PriorityDropdown } from "~/components/priority-dropdown";
 import { StatusDropdown } from "~/components/status-dropdown";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
@@ -61,7 +70,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { db } from "~/modules/db.server/client";
+import { db } from "~/modules/db.server";
 import {
 	Issue,
 	Project,
@@ -83,6 +92,7 @@ import {
 	title,
 	useDebouncedCallback,
 	useRequestInfo,
+	useUser,
 } from "~/modules/shared/utils";
 import {
 	badRequest,
@@ -90,7 +100,6 @@ import {
 	safeQuery,
 	unauthorized,
 } from "~/modules/shared/utils.server";
-import { useUser } from "~/modules/user";
 import type { Loader as FilterProjectsLoader } from "~/routes/resources+/filter-projects";
 import { NewIssueDialog } from "./new-issue-dialog";
 import { FormSchema, Intent } from "./shared";
@@ -102,6 +111,7 @@ const ORDER_OPTIONS = ["asc", "desc"] as const;
 const DEFAULT_ORDER: (typeof ORDER_OPTIONS)[number] = "desc";
 
 enum SearchKeys {
+	Exclusive = "exclusive",
 	Status = "status",
 	Priority = "priority",
 	Project = "project",
@@ -110,6 +120,10 @@ enum SearchKeys {
 }
 type SearchParamsSchema = z.infer<typeof SearchParamsSchema>;
 const SearchParamsSchema = z.object({
+	[SearchKeys.Exclusive]: z
+		.enum([SearchKeys.Status, SearchKeys.Priority])
+		.array()
+		.optional(),
 	[SearchKeys.Status]: z.number().array().default([]),
 	[SearchKeys.Priority]: z.number().array().default([]),
 	[SearchKeys.Project]: z.string().array().default([]),
@@ -176,10 +190,16 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 			.where(() => {
 				const extraFilters: Array<SQL> = [];
 				if (searchParams?.status && searchParams.status.length > 0) {
-					extraFilters.push(inArray(Issue.status, searchParams.status));
+					const method = searchParams.exclusive?.includes(SearchKeys.Status)
+						? notInArray
+						: inArray;
+					extraFilters.push(method(Issue.status, searchParams.status));
 				}
 				if (searchParams?.priority && searchParams.priority.length > 0) {
-					extraFilters.push(inArray(Issue.priority, searchParams.priority));
+					const method = searchParams.exclusive?.includes(SearchKeys.Priority)
+						? notInArray
+						: inArray;
+					extraFilters.push(method(Issue.priority, searchParams.priority));
 				}
 				if (searchParams?.project && searchParams.project.length > 0) {
 					extraFilters.push(inArray(Issue.projectId, searchParams.project));
@@ -733,6 +753,7 @@ const FILTERS_CONFIG = {
 function IssuesFiltersList(props: { param: keyof typeof FILTERS_CONFIG }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 
+	const isExclusive = searchParams.has(SearchKeys.Exclusive, props.param);
 	const values = searchParams.getAll(props.param);
 	const configList = FILTERS_CONFIG[props.param] as Record<
 		number,
@@ -741,7 +762,24 @@ function IssuesFiltersList(props: { param: keyof typeof FILTERS_CONFIG }) {
 
 	return values.length === 0 ? null : (
 		<div className="bg-primary text-primary-foreground inline-flex items-stretch rounded-md divide-x divide-background/40 text-xs font-medium">
-			<span className="capitalize px-2 py-0.5">{props.param} is:</span>
+			<button
+				type="button"
+				className="capitalize px-2 py-0.5"
+				onClick={() => {
+					setSearchParams(
+						(prev) => {
+							prev.has(SearchKeys.Exclusive, props.param)
+								? prev.delete(SearchKeys.Exclusive, props.param)
+								: prev.append(SearchKeys.Exclusive, props.param);
+
+							return prev;
+						},
+						{ replace: true },
+					);
+				}}
+			>
+				{props.param} {isExclusive ? "is not" : "is"}:
+			</button>
 			<span className="px-2 py-0.5">
 				{values.reduce((acc, v) => {
 					const weight = Number.parseInt(v, 10);
@@ -762,6 +800,7 @@ function IssuesFiltersList(props: { param: keyof typeof FILTERS_CONFIG }) {
 					setSearchParams(
 						(prev) => {
 							prev.delete(props.param);
+							prev.delete(SearchKeys.Exclusive);
 							return prev;
 						},
 						{ replace: true },

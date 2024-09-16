@@ -2,7 +2,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { cx } from "~/modules/shared/utils";
-import { Icon } from "./icons/icons";
+import { Icon } from "./icons";
 import { Separator } from "./ui/separator";
 import { Toggle } from "./ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";

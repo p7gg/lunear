@@ -296,13 +296,33 @@ function useIssues() {
 		projectId: string;
 		status: IssueStatus;
 		priority: IssuePriority;
-	}) =>
-		(!searchParams.has(SearchKeys.Status) ||
-			searchParams.has(SearchKeys.Status, `${payload.status}`)) &&
-		(!searchParams.has(SearchKeys.Priority) ||
-			searchParams.has(SearchKeys.Priority, `${payload.priority}`)) &&
-		(!searchParams.has(SearchKeys.Project) ||
-			searchParams.has(SearchKeys.Project, payload.projectId));
+	}) => {
+		const exclusive = searchParams.getAll(SearchKeys.Exclusive);
+		const hasOneStatus = searchParams.has(SearchKeys.Status);
+		const hasThisStatus = searchParams.has(
+			SearchKeys.Status,
+			`${payload.status}`,
+		);
+		const hasOnePrio = searchParams.has(SearchKeys.Priority);
+		const hasThisPrio = searchParams.has(
+			SearchKeys.Priority,
+			`${payload.priority}`,
+		);
+
+		const statusCheck = exclusive.includes(SearchKeys.Status)
+			? !hasThisStatus
+			: !hasOneStatus || hasThisStatus;
+
+		const priorityCheck = exclusive.includes(SearchKeys.Priority)
+			? !hasThisPrio
+			: !hasOnePrio || hasThisPrio;
+
+		const projectCheck =
+			!searchParams.has(SearchKeys.Project) ||
+			searchParams.has(SearchKeys.Project, payload.projectId);
+
+		return statusCheck && priorityCheck && projectCheck;
+	};
 
 	return [
 		...fetchers

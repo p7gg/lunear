@@ -72,6 +72,7 @@ export type IconName =
 	| "align-left"
 	| "align-right"
 	| "pin"
+	| "arrow-left"
 	| "lunear";
 
 const sizeClassName = {

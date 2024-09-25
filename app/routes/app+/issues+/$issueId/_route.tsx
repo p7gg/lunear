@@ -283,67 +283,59 @@ export async function action({ context, params, request }: ActionFunctionArgs) {
 }
 
 export function useComments() {
+	const fetchers = useFetchers();
 	const comments = useAsyncValue() as Awaited<
 		SerializeFrom<Loader>["commentsPromise"]
 	>;
-	const fetchers = useFetchers();
 
 	const user = useUser();
 
-	return [
-		...fetchers
-			.reduce(
-				(acc, fetcher) => {
-					if (fetcher.formData) {
-						const sub = parseWithZod(fetcher.formData, { schema: FormSchema });
+	return fetchers.reduce(
+		(acc, fetcher) => {
+			if (fetcher.formData) {
+				const sub = parseWithZod(fetcher.formData, { schema: FormSchema });
 
-						if (sub.status === "success") {
-							const payload = sub.value;
+				if (sub.status === "success") {
+					const payload = sub.value;
 
-							switch (payload.intent) {
-								case Intent.CreateComment: {
-									payload.id &&
-										acc.set(payload.id, {
-											id: payload.id,
-											createBy: user.id,
-											creator: `${user.firstName} ${user.lastName}`,
-											content: payload.content,
-										});
+					switch (payload.intent) {
+						case Intent.CreateComment: {
+							payload.id &&
+								acc.set(payload.id, {
+									id: payload.id,
+									createBy: user.id,
+									creator: `${user.firstName} ${user.lastName}`,
+									content: payload.content,
+								});
 
-									break;
-								}
-								case Intent.DeleteComment: {
-									acc.delete(payload.id);
-
-									break;
-								}
-								default:
-									break;
-							}
+							break;
 						}
-					}
+						case Intent.DeleteComment: {
+							acc.delete(payload.id);
 
-					return acc;
-				},
-				new Map(comments.map((c) => [c.id, c])),
-			)
-			.values(),
-	];
+							break;
+						}
+						default:
+							break;
+					}
+				}
+			}
+
+			return acc;
+		},
+		new Map(comments.map((c) => [c.id, c])),
+	);
 }
 
 export default function Route() {
 	return (
 		<div className="md:h-dvh flex flex-col">
 			<div className="flex items-center gap-3 py-2 px-4 border-b">
-				<span className="font-semibold mr-auto">Issue</span>
-
-				<DeleteIssueButton />
-
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button asChild variant="outline" size="icon">
+						<Button asChild variant="ghost" size="icon">
 							<Link to=".." relative="path">
-								<Icon name="x">
+								<Icon name="arrow-left">
 									<span className="sr-only">Navigate back</span>
 								</Icon>
 							</Link>
@@ -351,6 +343,9 @@ export default function Route() {
 					</TooltipTrigger>
 					<TooltipContent>Go back</TooltipContent>
 				</Tooltip>
+				<span className="font-semibold mr-auto">Issue</span>
+
+				<DeleteIssueButton />
 			</div>
 
 			<div className="flex-1 flex flex-col md:grid grid-cols-3 container overflow-hidden">
@@ -522,7 +517,7 @@ function CommentsList() {
 	return (
 		<ScrollArea className="h-96">
 			<ul className="flex flex-col gap-2">
-				{comments.map((comment) => {
+				{[...comments.values()].map((comment) => {
 					const [firstName, lastName] = comment.creator.split(" ");
 
 					return (

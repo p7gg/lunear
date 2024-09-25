@@ -152,7 +152,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 	const searchParams = parse.value;
 
 	const projectsPromise =
-		searchParams.project.length > 0
+		searchParams[SearchKeys.Project].length > 0
 			? db
 					.select({ id: Project.id, name: Project.name })
 					.from(Project)
@@ -162,14 +162,17 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 						return or(
 							isMember,
-							and(isMember, inArray(Project.id, searchParams.project)),
+							and(
+								isMember,
+								inArray(Project.id, searchParams[SearchKeys.Project]),
+							),
 						);
 					})
 					.orderBy(
-						desc(inArray(Project.id, searchParams.project)),
+						desc(inArray(Project.id, searchParams[SearchKeys.Project])),
 						desc(Project.createdAt),
 					)
-					.limit(Math.max(searchParams.project.length, 2))
+					.limit(Math.max(searchParams[SearchKeys.Project].length, 2))
 					.all()
 			: Promise.resolve([]);
 
@@ -189,26 +192,45 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 			.innerJoin(ProjectMember, eq(Issue.projectId, ProjectMember.projectId))
 			.where(() => {
 				const extraFilters: Array<SQL> = [];
-				if (searchParams?.status && searchParams.status.length > 0) {
-					const method = searchParams.exclusive?.includes(SearchKeys.Status)
+				if (
+					searchParams[SearchKeys.Status] &&
+					searchParams[SearchKeys.Status].length > 0
+				) {
+					const method = searchParams[SearchKeys.Exclusive]?.includes(
+						SearchKeys.Status,
+					)
 						? notInArray
 						: inArray;
-					extraFilters.push(method(Issue.status, searchParams.status));
+					extraFilters.push(
+						method(Issue.status, searchParams[SearchKeys.Status]),
+					);
 				}
-				if (searchParams?.priority && searchParams.priority.length > 0) {
-					const method = searchParams.exclusive?.includes(SearchKeys.Priority)
+				if (
+					searchParams[SearchKeys.Priority] &&
+					searchParams[SearchKeys.Priority].length > 0
+				) {
+					const method = searchParams[SearchKeys.Exclusive]?.includes(
+						SearchKeys.Priority,
+					)
 						? notInArray
 						: inArray;
-					extraFilters.push(method(Issue.priority, searchParams.priority));
+					extraFilters.push(
+						method(Issue.priority, searchParams[SearchKeys.Priority]),
+					);
 				}
-				if (searchParams?.project && searchParams.project.length > 0) {
-					extraFilters.push(inArray(Issue.projectId, searchParams.project));
+				if (
+					searchParams?.project &&
+					searchParams[SearchKeys.Project].length > 0
+				) {
+					extraFilters.push(
+						inArray(Issue.projectId, searchParams[SearchKeys.Project]),
+					);
 				}
 
 				return and(eq(ProjectMember.userId, context.user.id), ...extraFilters);
 			})
 			.orderBy(() => {
-				const direction = searchParams.order === "asc" ? asc : desc;
+				const direction = searchParams[SearchKeys.Order] === "asc" ? asc : desc;
 				const columns = {
 					created: Issue.createdAt,
 					priority: Issue.priority,
@@ -288,101 +310,54 @@ export async function action({ request, context }: ActionFunctionArgs) {
 function useIssues() {
 	const { issues } = useLoaderData<Loader>();
 	const fetchers = useFetchers();
-	const [searchParams] = useSearchParams();
 
 	const user = useUser();
 
-	const checkForSearchParams = (payload: {
-		projectId: string;
-		status: IssueStatus;
-		priority: IssuePriority;
-	}) => {
-		const exclusive = searchParams.getAll(SearchKeys.Exclusive);
-		const hasOneStatus = searchParams.has(SearchKeys.Status);
-		const hasThisStatus = searchParams.has(
-			SearchKeys.Status,
-			`${payload.status}`,
-		);
-		const hasOnePrio = searchParams.has(SearchKeys.Priority);
-		const hasThisPrio = searchParams.has(
-			SearchKeys.Priority,
-			`${payload.priority}`,
-		);
+	return fetchers.reduce(
+		(acc, fetcher) => {
+			if (fetcher.formData) {
+				const sub = parseWithZod(fetcher.formData, { schema: FormSchema });
 
-		const statusCheck = exclusive.includes(SearchKeys.Status)
-			? !hasThisStatus
-			: !hasOneStatus || hasThisStatus;
+				if (sub.status === "success") {
+					const payload = sub.value;
+					const now = new Date().toUTCString();
 
-		const priorityCheck = exclusive.includes(SearchKeys.Priority)
-			? !hasThisPrio
-			: !hasOnePrio || hasThisPrio;
-
-		const projectCheck =
-			!searchParams.has(SearchKeys.Project) ||
-			searchParams.has(SearchKeys.Project, payload.projectId);
-
-		return statusCheck && priorityCheck && projectCheck;
-	};
-
-	return [
-		...fetchers
-			.reduce(
-				(acc, fetcher) => {
-					if (fetcher.formData) {
-						const sub = parseWithZod(fetcher.formData, { schema: FormSchema });
-
-						if (sub.status === "success") {
-							const payload = sub.value;
-							const now = new Date().toUTCString();
-
-							switch (payload.intent) {
-								case Intent.CreateIssue: {
-									payload.id &&
-										checkForSearchParams(payload) &&
-										acc.set(payload.id, {
-											id: payload.id,
-											createdAt: now,
-											creator: `${user.firstName} ${user.lastName}`,
-											projectId: payload.projectId,
-											status: payload.status,
-											priority: payload.priority,
-											title: payload.title,
-										});
-									break;
-								}
-								case Intent.DeleteIssue: {
-									acc.delete(payload.id);
-									break;
-								}
-								case Intent.UpdateIssue: {
-									const project = acc.get(payload.id);
-									if (project) {
-										acc.set(project.id, { ...project, ...payload });
-									}
-
-									break;
-								}
-								default:
-									break;
-							}
+					switch (payload.intent) {
+						case Intent.CreateIssue: {
+							payload.id &&
+								acc.set(payload.id, {
+									id: payload.id,
+									createdAt: now,
+									creator: `${user.firstName} ${user.lastName}`,
+									projectId: payload.projectId,
+									status: payload.status,
+									priority: payload.priority,
+									title: payload.title,
+								});
+							break;
 						}
+						case Intent.DeleteIssue: {
+							acc.delete(payload.id);
+							break;
+						}
+						case Intent.UpdateIssue: {
+							const project = acc.get(payload.id);
+							if (project) {
+								acc.set(project.id, { ...project, ...payload });
+							}
+
+							break;
+						}
+						default:
+							break;
 					}
+				}
+			}
 
-					return acc;
-				},
-				new Map(
-					issues.reduce(
-						(acc, issue) => {
-							if (checkForSearchParams(issue)) acc.push([issue.id, issue]);
-
-							return acc;
-						},
-						[] as Array<[string, SerializeFrom<Loader>["issues"][number]]>,
-					),
-				),
-			)
-			.values(),
-	];
+			return acc;
+		},
+		new Map(issues.map((issue) => [issue.id, issue])),
+	);
 }
 
 export default function Route() {
@@ -401,8 +376,8 @@ export default function Route() {
 			</div>
 
 			<div className="flex items-center gap-4">
-				<IssuesFiltersList param="status" />
-				<IssuesFiltersList param="priority" />
+				<IssuesFiltersList param={SearchKeys.Status} />
+				<IssuesFiltersList param={SearchKeys.Priority} />
 			</div>
 
 			<IssuesList />
@@ -766,8 +741,8 @@ function ProjectsSelect() {
 }
 
 const FILTERS_CONFIG = {
-	priority: ISSUE_PRIORITY_CONFIG,
-	status: ISSUE_STATUS_CONFIG,
+	[SearchKeys.Priority]: ISSUE_PRIORITY_CONFIG,
+	[SearchKeys.Status]: ISSUE_STATUS_CONFIG,
 } as const satisfies Partial<Record<SearchKeys, unknown>>;
 
 function IssuesFiltersList(props: { param: keyof typeof FILTERS_CONFIG }) {
@@ -837,17 +812,59 @@ function IssuesFiltersList(props: { param: keyof typeof FILTERS_CONFIG }) {
 
 function IssuesList() {
 	const issues = useIssues();
+	const [searchParams] = useSearchParams();
 
-	return issues.length === 0 ? (
-		<p className="text-muted-foreground text-center italic">
-			Create a new issue
-		</p>
-	) : (
+	const checkForSearchParams = (payload: {
+		projectId: string;
+		status: IssueStatus;
+		priority: IssuePriority;
+	}) => {
+		const exclusive = searchParams.getAll(SearchKeys.Exclusive);
+		const hasOneStatus = searchParams.has(SearchKeys.Status);
+		const hasThisStatus = searchParams.has(
+			SearchKeys.Status,
+			`${payload.status}`,
+		);
+		const hasOnePrio = searchParams.has(SearchKeys.Priority);
+		const hasThisPrio = searchParams.has(
+			SearchKeys.Priority,
+			`${payload.priority}`,
+		);
+
+		const statusCheck = exclusive.includes(SearchKeys.Status)
+			? !hasThisStatus
+			: !hasOneStatus || hasThisStatus;
+
+		const priorityCheck = exclusive.includes(SearchKeys.Priority)
+			? !hasThisPrio
+			: !hasOnePrio || hasThisPrio;
+
+		const projectCheck =
+			!searchParams.has(SearchKeys.Project) ||
+			searchParams.has(SearchKeys.Project, payload.projectId);
+
+		return statusCheck && priorityCheck && projectCheck;
+	};
+	const hasFilters =
+		searchParams.has(SearchKeys.Exclusive) ||
+		searchParams.has(SearchKeys.Priority) ||
+		searchParams.has(SearchKeys.Project) ||
+		searchParams.has(SearchKeys.Status);
+
+	return (
 		<Card>
 			<ul className="divide-y">
-				{issues.map((issue) => (
-					<IssueItem key={issue.id} issue={issue} />
-				))}
+				{[...issues.values()].map((issue) =>
+					checkForSearchParams(issue) ? (
+						<IssueItem key={issue.id} issue={issue} />
+					) : null,
+				)}
+
+				<li className="hidden first:list-item">
+					<p className="text-muted-foreground text-center italic py-4">
+						{hasFilters ? "No issues found" : "Create a new issue"}
+					</p>
+				</li>
 			</ul>
 		</Card>
 	);
